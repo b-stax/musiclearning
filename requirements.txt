@@ -1,0 +1,2 @@
+python-rtmidi
+pygame==2.0.0
