@@ -11,7 +11,7 @@ FPS = 30
 pg.init()
 fpsClock = pg.time.Clock()
 
-SCREEN_WIDTH, SCREEN_HEIGHT = 840, 480
+SCREEN_WIDTH, SCREEN_HEIGHT = 960, 480
 screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 clock = pg.time.Clock()
 
@@ -48,7 +48,7 @@ def draw_circle(surf, color, pos):
 
 class Staff(object):
     STAFF_POS = [15, 15]
-    STAFF_WIDTH = 750
+    STAFF_WIDTH = 860
     STAFF_HEIGHT = 450
     COLOR = (0, 0, 0)
 
@@ -72,12 +72,10 @@ class Staff(object):
     TREBLE_IMAGE_SCALE = 0.75
     TREBLE_IMAGE_HEADROOM_LEFT = 0
     TREBLE_IMAGE_ANCHOR_OFFSET = 0.625
-    NOTE_G5 = 145  # TODO
 
     BASS_IMAGE_SCALE = 0.32
     BASS_IMAGE_HEADROOM_LEFT = 35
     BASS_IMAGE_ANCHOR_OFFSET = 0.27
-    NOTE_F4 = 332  # TODO, compute for realsies
 
     def __init__(self):
         self.STAFF_TOP_RIGHT_CORNER = copy.deepcopy(self.STAFF_POS)
@@ -98,10 +96,14 @@ class Staff(object):
         draw_line_vertical(surf, self.COLOR, clef_pos, self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_BOLD)
         draw_line_vertical(surf, self.COLOR, clef_top_right_corner, self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_BOLD)
 
+        line_heights = []
+
         for i in range(0, 5):
-            line_pos = \
-                [clef_pos[0], clef_pos[1] + i * (self.NOTE_SPACE_WIDTH + self.STAFF_LINE_WEIGHT)]
+            line_height = clef_pos[1] + i * (self.NOTE_SPACE_WIDTH + self.STAFF_LINE_WEIGHT)
+            line_heights.append(line_height)
+            line_pos = [clef_pos[0], line_height]
             draw_line_horizontal(surf, self.COLOR, line_pos, self.INDIVIDUAL_CLEF_WIDTH, self.STAFF_LINE_WEIGHT)
+        return line_heights
 
     def draw(self, surf):
         # outer bounding rectangle
@@ -113,14 +115,14 @@ class Staff(object):
                              outer_bound_lw)
 
         # clef lines
-        self.draw_clef_lines(self.TREBLE_CLEF_POS, surf)
-        self.draw_clef_lines(self.BASS_CLEF_POS, surf)
+        treble_line_heights = self.draw_clef_lines(self.TREBLE_CLEF_POS, surf)
+        bass_line_heights = self.draw_clef_lines(self.BASS_CLEF_POS, surf)
 
         self.draw_clef_symbol("treble_clef.png", self.TREBLE_IMAGE_SCALE, self.TREBLE_IMAGE_ANCHOR_OFFSET,
-                              self.TREBLE_IMAGE_HEADROOM_LEFT, self.NOTE_G5, surf)
+                              self.TREBLE_IMAGE_HEADROOM_LEFT, treble_line_heights[3], surf)
 
         self.draw_clef_symbol("bass_clef.png", self.BASS_IMAGE_SCALE, self.BASS_IMAGE_ANCHOR_OFFSET,
-                              self.BASS_IMAGE_HEADROOM_LEFT, self.NOTE_F4, surf)
+                              self.BASS_IMAGE_HEADROOM_LEFT, bass_line_heights[1], surf)
 
 
 
