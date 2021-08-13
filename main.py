@@ -1,20 +1,20 @@
 import copy
 
-import pygame
+import pygame as pg
 import sys
-import random
+import os
 
 from pygame.locals import *
 
 FPS = 30
-pygame.init()
-fpsClock = pygame.time.Clock()
+pg.init()
+fpsClock = pg.time.Clock()
 
 SCREEN_WIDTH, SCREEN_HEIGHT = 840, 480
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
-clock = pygame.time.Clock()
+screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
+clock = pg.time.Clock()
 
-pygame.key.set_repeat(1, 40)
+pg.key.set_repeat(1, 40)
 
 GRIDSIZE = 10
 GRID_WIDTH = SCREEN_WIDTH / GRIDSIZE
@@ -23,25 +23,33 @@ LINE_WEIGHT_BOLD = 8
 LINE_WEIGHT_STANDARD = 2
 LINE_WEIGHT_LIGHT = 1
 
-UP = (0, -1)
-DOWN = (0, 1)
-LEFT = (-1, 0)
-RIGHT = (1, 0)
+main_dir = os.path.split(os.path.abspath(__file__))[0]
+
+
+def load_image(file):
+    """ loads an image, prepares it for play
+    """
+    file = os.path.join(main_dir, "data", file)
+    try:
+        surface = pg.image.load(file)
+    except pg.error:
+        raise SystemExit('Could not load image "%s" %s' % (file, pg.get_error()))
+    return surface.convert()
 
 
 def draw_line_horizontal(surf, color, pos, width, line_weight=LINE_WEIGHT_STANDARD):
-    r = pygame.Rect((pos[0], pos[1]), (width, line_weight))
-    pygame.draw.rect(surf, color, r)
+    r = pg.Rect((pos[0], pos[1]), (width, line_weight))
+    pg.draw.rect(surf, color, r)
 
 
 def draw_line_vertical(surf, color, pos, height, line_weight=LINE_WEIGHT_STANDARD):
-    r = pygame.Rect((pos[0], pos[1]), (line_weight, height))
-    pygame.draw.rect(surf, color, r)
+    r = pg.Rect((pos[0], pos[1]), (line_weight, height))
+    pg.draw.rect(surf, color, r)
 
 
 def draw_circle(surf, color, pos):
-    r = pygame.Rect((pos[0], pos[1]), (GRIDSIZE, GRIDSIZE))
-    pygame.draw.ellipse(surf, color, r)
+    r = pg.Rect((pos[0], pos[1]), (GRIDSIZE, GRIDSIZE))
+    pg.draw.ellipse(surf, color, r)
 
 
 class Staff(object):
@@ -92,12 +100,15 @@ class Staff(object):
         draw_line_horizontal(surf, self.COLOR, self.STAFF_BOTTOM_LEFT_CORNER, self.STAFF_WIDTH + outer_bound_lw,
                              outer_bound_lw)
 
-        # treble clef
+        # clef lines
         self.draw_clef_lines(self.TREBLE_CLEF_POS, surf)
+        self.draw_clef_lines(self.BASS_CLEF_POS, surf)
+
+
 
 
 def new_surface():
-    surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+    surface = pg.Surface(screen.get_size(), pg.SRCALPHA)
     surface = surface.convert_alpha()
     return surface
 
@@ -112,10 +123,10 @@ if __name__ == '__main__':
 
     while True:
 
-        for event in pygame.event.get():
+        for event in pg.event.get():
             print(event)
             if event.type == QUIT:
-                pygame.quit()
+                pg.quit()
                 sys.exit()
             # elif event.type == KEYDOWN:
             #     if event.key == K_UP:
@@ -127,7 +138,7 @@ if __name__ == '__main__':
             #     elif event.key == K_RIGHT:
             #         snake.point(RIGHT)
 
-        # font = pygame.font.Font(None, 36)
+        # font = pg.font.Font(None, 36)
         # text = font.render(str(snake.length), 1, (10, 10, 10))
         # textpos = text.get_rect()
         # textpos.centerx = 20
@@ -135,6 +146,6 @@ if __name__ == '__main__':
 
         screen.blit(staff_surface, (0, 0))
 
-        pygame.display.flip()
-        pygame.display.update()
+        pg.display.flip()
+        pg.display.update()
         fpsClock.tick(FPS)
