@@ -69,6 +69,16 @@ class Staff(object):
     BASS_CLEF_POS = \
         [STAFF_POS[0] + HEADROOM_LEFT, STAFF_POS[1] + HEADROOM_TOP + INDIVIDUAL_CLEF_HEIGHT + INTER_STAFF_HEAD_ROOM]
 
+    TREBLE_IMAGE_SCALE = 0.75
+    TREBLE_IMAGE_HEADROOM_LEFT = 0
+    TREBLE_IMAGE_ANCHOR_OFFSET = 0.625
+    NOTE_G5 = 145  # TODO
+
+    BASS_IMAGE_SCALE = 0.32
+    BASS_IMAGE_HEADROOM_LEFT = 35
+    BASS_IMAGE_ANCHOR_OFFSET = 0.27
+    NOTE_F4 = 332  # TODO, compute for realsies
+
     def __init__(self):
         self.STAFF_TOP_RIGHT_CORNER = copy.deepcopy(self.STAFF_POS)
         self.STAFF_TOP_RIGHT_CORNER[0] = self.STAFF_TOP_RIGHT_CORNER[0] + self.STAFF_WIDTH
@@ -106,21 +116,11 @@ class Staff(object):
         self.draw_clef_lines(self.TREBLE_CLEF_POS, surf)
         self.draw_clef_lines(self.BASS_CLEF_POS, surf)
 
-        TREBLE_IMAGE_SCALE = 0.75
-        TREBLE_IMAGE_HEADROOM_LEFT = 0
-        TREBLE_IMAGE_ANCHOR_OFFSET = 0.625
-        NOTE_G5 = 145  # TODO
+        self.draw_clef_symbol("treble_clef.png", self.TREBLE_IMAGE_SCALE, self.TREBLE_IMAGE_ANCHOR_OFFSET,
+                              self.TREBLE_IMAGE_HEADROOM_LEFT, self.NOTE_G5, surf)
 
-        self.draw_clef_symbol("treble_clef.png", TREBLE_IMAGE_SCALE, TREBLE_IMAGE_ANCHOR_OFFSET,
-                              TREBLE_IMAGE_HEADROOM_LEFT, NOTE_G5, surf)
-
-        BASS_IMAGE_SCALE = 0.32
-        BASS_IMAGE_HEADROOM_LEFT = 35
-        BASS_IMAGE_ANCHOR_OFFSET = 0.27
-        NOTE_F4 = 332  # TODO, compute for realsies
-
-        self.draw_clef_symbol("bass_clef.png", BASS_IMAGE_SCALE, BASS_IMAGE_ANCHOR_OFFSET,
-                              BASS_IMAGE_HEADROOM_LEFT, NOTE_F4, surf)
+        self.draw_clef_symbol("bass_clef.png", self.BASS_IMAGE_SCALE, self.BASS_IMAGE_ANCHOR_OFFSET,
+                              self.BASS_IMAGE_HEADROOM_LEFT, self.NOTE_F4, surf)
 
 
 
