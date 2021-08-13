@@ -75,6 +75,14 @@ class Staff(object):
         self.STAFF_BOTTOM_LEFT_CORNER = copy.deepcopy(self.STAFF_POS)
         self.STAFF_BOTTOM_LEFT_CORNER[1] = self.STAFF_BOTTOM_LEFT_CORNER[1] + self.STAFF_HEIGHT
 
+    # image offset_anchor is what percent of the way down the image is the anchor note height
+    # e.g., the treble clef wants the curly bit to be in G4 and the bass clef wants F3 between the dots theah
+    def draw_clef_symbol(self, image_file, image_scale, image_offset_anchor, image_headroom_left, note_height, surf):
+        treble_image = pg.transform.rotozoom(pg.image.load(get_asset_file(image_file)).convert_alpha(), 0,
+                                             image_scale)
+        clef_symbol_y = note_height - math.floor(treble_image.get_height() * image_offset_anchor)
+        surf.blit(treble_image, [self.STAFF_POS[0] + image_headroom_left, clef_symbol_y])
+
     def draw_clef_lines(self, clef_pos, surf):
         clef_top_right_corner = [clef_pos[0] + self.INDIVIDUAL_CLEF_WIDTH, clef_pos[1]]
         draw_line_vertical(surf, self.COLOR, clef_pos, self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_BOLD)
@@ -98,19 +106,22 @@ class Staff(object):
         self.draw_clef_lines(self.TREBLE_CLEF_POS, surf)
         self.draw_clef_lines(self.BASS_CLEF_POS, surf)
 
-        # clef symbols
-        treble_image_scale = 0.75
-        treble_image = pg.transform.rotozoom(pg.image.load(get_asset_file("treble_clef.png")).convert_alpha(), 0,
-                                             treble_image_scale)
-        treble_image_anchor_offset = 0.625  # percent of the way down that needs to be on G4
-        TREBLE_CLEF_HEADROOM = 0
-        treble_y = 145 - math.floor(treble_image.get_height() * treble_image_anchor_offset)
-        surf.blit(treble_image, [self.STAFF_POS[0] + TREBLE_CLEF_HEADROOM, treble_y])
+        TREBLE_IMAGE_SCALE = 0.75
+        TREBLE_IMAGE_HEADROOM_LEFT = 0
+        TREBLE_IMAGE_ANCHOR_OFFSET = 0.625
+        NOTE_G5 = 145  # TODO
 
-        bass_image = pg.image.load(get_asset_file("bass_clef.png")).convert_alpha()
-        bass_image_anchor_offset = 0.4  # position that needs to be on F3
+        self.draw_clef_symbol("treble_clef.png", TREBLE_IMAGE_SCALE, TREBLE_IMAGE_ANCHOR_OFFSET,
+                              TREBLE_IMAGE_HEADROOM_LEFT, NOTE_G5, surf)
 
-        surf.blit(bass_image, (0, 0))
+        BASS_IMAGE_SCALE = 0.32
+        BASS_IMAGE_HEADROOM_LEFT = 35
+        BASS_IMAGE_ANCHOR_OFFSET = 0.27
+        NOTE_F4 = 332  # TODO, compute for realsies
+
+        self.draw_clef_symbol("bass_clef.png", BASS_IMAGE_SCALE, BASS_IMAGE_ANCHOR_OFFSET,
+                              BASS_IMAGE_HEADROOM_LEFT, NOTE_F4, surf)
+
 
 
 def new_surface():
