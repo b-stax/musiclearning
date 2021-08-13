@@ -1,4 +1,5 @@
 import copy
+import math
 
 import pygame as pg
 import sys
@@ -26,15 +27,8 @@ LINE_WEIGHT_LIGHT = 1
 main_dir = os.path.split(os.path.abspath(__file__))[0]
 
 
-def load_image(file):
-    """ loads an image, prepares it for play
-    """
-    file = os.path.join(main_dir, "assets", file)
-    try:
-        surface = pg.image.load(file)
-    except pg.error:
-        raise SystemExit('Could not load image "%s" %s' % (file, pg.get_error()))
-    return surface.convert()
+def get_asset_file(file):
+    return os.path.join(main_dir, "assets", file)
 
 
 def draw_line_horizontal(surf, color, pos, width, line_weight=LINE_WEIGHT_STANDARD):
@@ -104,7 +98,19 @@ class Staff(object):
         self.draw_clef_lines(self.TREBLE_CLEF_POS, surf)
         self.draw_clef_lines(self.BASS_CLEF_POS, surf)
 
+        # clef symbols
+        treble_image_scale = 0.75
+        treble_image = pg.transform.rotozoom(pg.image.load(get_asset_file("treble_clef.png")).convert_alpha(), 0,
+                                             treble_image_scale)
+        treble_image_anchor_offset = 0.625  # percent of the way down that needs to be on G4
+        TREBLE_CLEF_HEADROOM = 0
+        treble_y = 145 - math.floor(treble_image.get_height() * treble_image_anchor_offset)
+        surf.blit(treble_image, [self.STAFF_POS[0] + TREBLE_CLEF_HEADROOM, treble_y])
 
+        bass_image = pg.image.load(get_asset_file("bass_clef.png")).convert_alpha()
+        bass_image_anchor_offset = 0.4  # position that needs to be on F3
+
+        surf.blit(bass_image, (0, 0))
 
 
 def new_surface():
