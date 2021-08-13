@@ -10,7 +10,7 @@ FPS = 30
 pygame.init()
 fpsClock = pygame.time.Clock()
 
-SCREEN_WIDTH, SCREEN_HEIGHT = 720, 480
+SCREEN_WIDTH, SCREEN_HEIGHT = 840, 480
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 clock = pygame.time.Clock()
 
@@ -46,7 +46,7 @@ def draw_circle(surf, color, pos):
 
 class Staff(object):
     STAFF_POS = [15, 15]
-    STAFF_WIDTH = 600
+    STAFF_WIDTH = 750
     STAFF_HEIGHT = 450
     COLOR = (0, 0, 0)
 
@@ -58,19 +58,30 @@ class Staff(object):
     HEADROOM_RIGHT = 20
     STAFF_LINE_WEIGHT = LINE_WEIGHT_STANDARD
 
-    TREBLE_CLEF_POS = [STAFF_POS[0] + HEADROOM_LEFT, STAFF_POS[1] + HEADROOM_TOP]
-    TREBLE_CLEF_END = [STAFF_POS[0] + STAFF_WIDTH - HEADROOM_RIGHT, STAFF_POS[1] + HEADROOM_TOP]
-
     NOTE_SPACE_WIDTH = 15
 
     INDIVIDUAL_CLEF_HEIGHT = 5 * STAFF_LINE_WEIGHT + 4 * NOTE_SPACE_WIDTH
     INDIVIDUAL_CLEF_WIDTH = STAFF_WIDTH - (HEADROOM_LEFT + HEADROOM_RIGHT)
+
+    TREBLE_CLEF_POS = [STAFF_POS[0] + HEADROOM_LEFT, STAFF_POS[1] + HEADROOM_TOP]
+    BASS_CLEF_POS = \
+        [STAFF_POS[0] + HEADROOM_LEFT, STAFF_POS[1] + HEADROOM_TOP + INDIVIDUAL_CLEF_HEIGHT + INTER_STAFF_HEAD_ROOM]
 
     def __init__(self):
         self.STAFF_TOP_RIGHT_CORNER = copy.deepcopy(self.STAFF_POS)
         self.STAFF_TOP_RIGHT_CORNER[0] = self.STAFF_TOP_RIGHT_CORNER[0] + self.STAFF_WIDTH
         self.STAFF_BOTTOM_LEFT_CORNER = copy.deepcopy(self.STAFF_POS)
         self.STAFF_BOTTOM_LEFT_CORNER[1] = self.STAFF_BOTTOM_LEFT_CORNER[1] + self.STAFF_HEIGHT
+
+    def draw_clef_lines(self, clef_pos, surf):
+        clef_top_right_corner = [clef_pos[0] + self.INDIVIDUAL_CLEF_WIDTH, clef_pos[1]]
+        draw_line_vertical(surf, self.COLOR, clef_pos, self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_BOLD)
+        draw_line_vertical(surf, self.COLOR, clef_top_right_corner, self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_BOLD)
+
+        for i in range(0, 5):
+            line_pos = \
+                [clef_pos[0], clef_pos[1] + i * (self.NOTE_SPACE_WIDTH + self.STAFF_LINE_WEIGHT)]
+            draw_line_horizontal(surf, self.COLOR, line_pos, self.INDIVIDUAL_CLEF_WIDTH, self.STAFF_LINE_WEIGHT)
 
     def draw(self, surf):
         # outer bounding rectangle
@@ -82,16 +93,7 @@ class Staff(object):
                              outer_bound_lw)
 
         # treble clef
-        draw_line_vertical(surf, self.COLOR, self.TREBLE_CLEF_POS, self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_BOLD)
-        draw_line_vertical(surf, self.COLOR, self.TREBLE_CLEF_END, self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_BOLD)
-
-        for i in range(0,5):
-            line_pos = \
-                [self.TREBLE_CLEF_POS[0], self.TREBLE_CLEF_POS[1] + i* (self.NOTE_SPACE_WIDTH + self.STAFF_LINE_WEIGHT)]
-            draw_line_horizontal(surf, self.COLOR, line_pos, self.INDIVIDUAL_CLEF_WIDTH, self.STAFF_LINE_WEIGHT)
-
-
-
+        self.draw_clef_lines(self.TREBLE_CLEF_POS, surf)
 
 
 def new_surface():
