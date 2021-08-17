@@ -41,11 +41,6 @@ def draw_line_vertical(surf, color, pos, height, line_weight=LINE_WEIGHT_STANDAR
     pg.draw.rect(surf, color, r)
 
 
-def draw_circle(surf, color, pos):
-    r = pg.Rect((pos[0], pos[1]), (GRIDSIZE, GRIDSIZE))
-    pg.draw.ellipse(surf, color, r)
-
-
 class Staff(object):
     STAFF_POS = [15, 15]
     STAFF_WIDTH = 860
@@ -84,8 +79,15 @@ class Staff(object):
         self.STAFF_BOTTOM_LEFT_CORNER[1] = self.STAFF_BOTTOM_LEFT_CORNER[1] + self.STAFF_HEIGHT
 
         self.treble_line_heights = self.get_clef_line_heights(self.TREBLE_CLEF_POS)
+        self.treble_space_heights = self.get_clef_space_heights(self.treble_line_heights)
         self.bass_line_heights = self.get_clef_line_heights(self.BASS_CLEF_POS)
+        self.bass_space_heights = self.get_clef_space_heights(self.bass_line_heights)
 
+    def get_clef_space_heights(self, line_heights):
+        res = []
+        for i in range(0, len(line_heights) - 1):
+            res.append(math.ceil((line_heights[i] + line_heights[i + 1]) / 2))
+        return res
 
     # image offset_anchor is what percent of the way down the image is the anchor note height
     # e.g., the treble clef wants the curly bit to be in G4 and the bass clef wants F3 between the dots theah
@@ -127,10 +129,8 @@ class Staff(object):
 
         self.draw_clef_symbol("treble_clef.png", self.TREBLE_IMAGE_SCALE, self.TREBLE_IMAGE_ANCHOR_OFFSET,
                               self.TREBLE_IMAGE_HEADROOM_LEFT, self.treble_line_heights[3], surf)
-
         self.draw_clef_symbol("bass_clef.png", self.BASS_IMAGE_SCALE, self.BASS_IMAGE_ANCHOR_OFFSET,
                               self.BASS_IMAGE_HEADROOM_LEFT, self.bass_line_heights[1], surf)
-
 
 
 def new_surface():
