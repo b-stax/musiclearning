@@ -91,16 +91,19 @@ class Staff(object):
         clef_symbol_y = note_height - math.floor(treble_image.get_height() * image_offset_anchor)
         surf.blit(treble_image, [self.STAFF_POS[0] + image_headroom_left, clef_symbol_y])
 
-    def draw_clef_lines(self, clef_pos, surf):
-        clef_top_right_corner = [clef_pos[0] + self.INDIVIDUAL_CLEF_WIDTH, clef_pos[1]]
-        draw_line_vertical(surf, self.COLOR, clef_pos, self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_BOLD)
-        draw_line_vertical(surf, self.COLOR, clef_top_right_corner, self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_BOLD)
-
-        line_heights = []
-
+    def get_clef_line_heights(self, clef_pos):
+        res = []
         for i in range(0, 5):
             line_height = clef_pos[1] + i * (self.NOTE_SPACE_WIDTH + self.STAFF_LINE_WEIGHT)
-            line_heights.append(line_height)
+            res.append(line_height)
+        return res
+
+
+    def draw_clef_lines(self, clef_pos, line_heights, surf):
+        draw_line_vertical(surf, self.COLOR, clef_pos, self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_BOLD)
+        draw_line_vertical(surf, self.COLOR, [clef_pos[0] + self.INDIVIDUAL_CLEF_WIDTH, clef_pos[1]], self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_BOLD)
+
+        for line_height in line_heights:
             line_pos = [clef_pos[0], line_height]
             draw_line_horizontal(surf, self.COLOR, line_pos, self.INDIVIDUAL_CLEF_WIDTH, self.STAFF_LINE_WEIGHT)
         return line_heights
@@ -115,8 +118,10 @@ class Staff(object):
                              outer_bound_lw)
 
         # clef lines
-        treble_line_heights = self.draw_clef_lines(self.TREBLE_CLEF_POS, surf)
-        bass_line_heights = self.draw_clef_lines(self.BASS_CLEF_POS, surf)
+        treble_line_heights = self.get_clef_line_heights(self.TREBLE_CLEF_POS)
+        self.draw_clef_lines(self.TREBLE_CLEF_POS, treble_line_heights, surf)
+        bass_line_heights = self.get_clef_line_heights(self.BASS_CLEF_POS)
+        self.draw_clef_lines(self.BASS_CLEF_POS, bass_line_heights, surf)
 
         self.draw_clef_symbol("treble_clef.png", self.TREBLE_IMAGE_SCALE, self.TREBLE_IMAGE_ANCHOR_OFFSET,
                               self.TREBLE_IMAGE_HEADROOM_LEFT, treble_line_heights[3], surf)
