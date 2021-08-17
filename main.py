@@ -83,6 +83,10 @@ class Staff(object):
         self.STAFF_BOTTOM_LEFT_CORNER = copy.deepcopy(self.STAFF_POS)
         self.STAFF_BOTTOM_LEFT_CORNER[1] = self.STAFF_BOTTOM_LEFT_CORNER[1] + self.STAFF_HEIGHT
 
+        self.treble_line_heights = self.get_clef_line_heights(self.TREBLE_CLEF_POS)
+        self.bass_line_heights = self.get_clef_line_heights(self.BASS_CLEF_POS)
+
+
     # image offset_anchor is what percent of the way down the image is the anchor note height
     # e.g., the treble clef wants the curly bit to be in G4 and the bass clef wants F3 between the dots theah
     def draw_clef_symbol(self, image_file, image_scale, image_offset_anchor, image_headroom_left, note_height, surf):
@@ -118,16 +122,14 @@ class Staff(object):
                              outer_bound_lw)
 
         # clef lines
-        treble_line_heights = self.get_clef_line_heights(self.TREBLE_CLEF_POS)
-        self.draw_clef_lines(self.TREBLE_CLEF_POS, treble_line_heights, surf)
-        bass_line_heights = self.get_clef_line_heights(self.BASS_CLEF_POS)
-        self.draw_clef_lines(self.BASS_CLEF_POS, bass_line_heights, surf)
+        self.draw_clef_lines(self.TREBLE_CLEF_POS, self.treble_line_heights, surf)
+        self.draw_clef_lines(self.BASS_CLEF_POS, self.bass_line_heights, surf)
 
         self.draw_clef_symbol("treble_clef.png", self.TREBLE_IMAGE_SCALE, self.TREBLE_IMAGE_ANCHOR_OFFSET,
-                              self.TREBLE_IMAGE_HEADROOM_LEFT, treble_line_heights[3], surf)
+                              self.TREBLE_IMAGE_HEADROOM_LEFT, self.treble_line_heights[3], surf)
 
         self.draw_clef_symbol("bass_clef.png", self.BASS_IMAGE_SCALE, self.BASS_IMAGE_ANCHOR_OFFSET,
-                              self.BASS_IMAGE_HEADROOM_LEFT, bass_line_heights[1], surf)
+                              self.BASS_IMAGE_HEADROOM_LEFT, self.bass_line_heights[1], surf)
 
 
 
