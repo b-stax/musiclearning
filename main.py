@@ -1,3 +1,4 @@
+import abc
 import copy
 import math
 
@@ -137,16 +138,16 @@ class Staff(object):
         self.draw_clef_symbol("bass_clef.png", self.BASS_IMAGE_SCALE, self.BASS_IMAGE_ANCHOR_OFFSET,
                               self.BASS_IMAGE_HEADROOM_LEFT, self.bass_line_heights[1], surf)
 
-        # debug
-        offset = 0
-        did = False
-        for (note, height) in self.display_heights.items():
-            if (note.endswith("BASS") and not did):
-                did = True
-                offset -= 250
-            print(f"{note}: {height}")
-            draw_ellipse_angle(surf, (0, 0, 0, 255), self.get_note_rect(self.TREBLE_CLEF_POS[0] + 100 + offset, height), 20)
-            offset += 25
+        # # debug
+        # offset = 0
+        # did = False
+        # for (note, height) in self.display_heights.items():
+        #     if (note.endswith("BASS") and not did):
+        #         did = True
+        #         offset -= 250
+        #     print(f"{note}: {height}")
+        #     draw_ellipse_angle(surf, (0, 0, 0, 255), self.get_note_rect(self.TREBLE_CLEF_POS[0] + 100 + offset, height), 20)
+        #     offset += 25
 
     def get_note_rect(self, x_pos, note_height_id, scale = 1):
         left = x_pos - self.NOTE_X_RADIUS * scale
@@ -205,6 +206,170 @@ class Staff(object):
         }
         return heights
 
+from enum import Enum
+class NoteCollisionSideEffect(Enum):
+    NONE = 0
+    PLAYER_MISSED_ALL = 1
+    ENEMY_NOTE_GOT_THROUGH = 2
+    SUCCESSFUL_COLLISION = 3
+
+class GameState():
+
+    def __init__(self):
+        self.player_notes = dict()
+        self.enemy_notes = dict()
+        self.latest_note_id = 0
+
+    def update(self):
+        for (id, note) in self.player_notes.items():
+            note.update()
+        for (id, note) in self.enemy_notes.items():
+            note.update()
+
+        # TODO efficientize
+        for (player_note_id, player_note) in self.player_notes.items():
+            for (enemy_note_id, enemy_note) in self.enemy_notes.items():
+                enemy_note.try_interact(player_note)
+
+        player_notes_to_destroy = []
+        enemy_notes_to_destroy = []
+
+        for (id, note) in self.player_notes.items():
+            side_effect =  note.should_destroy
+            if side_effect:
+                player_notes_to_destroy.append(id)
+                self.do_side_effect(side_effect)
+
+        for (id, note) in self.enemy_notes.items():
+            side_effect =  note.should_destroy
+            if side_effect:
+                enemy_notes_to_destroy.append(id)
+                self.do_side_effect(side_effect)
+
+        for id in player_notes_to_destroy:
+            del self.player_notes[id]
+
+        for id in enemy_notes_to_destroy:
+            del self.enemy_notes[id]
+
+    def do_side_effect(self, side_effect: NoteCollisionSideEffect):
+        print(side_effect)
+
+    def draw_note_collection(self, surf, staff):
+        for (id, note) in self.enemy_notes.items():
+            note.draw(surf, staff)
+
+        for (id, note) in self.player_notes.items():
+            note.draw(surf, staff)
+
+    def draw(self, surf, staff):
+        self.draw_note_collection(surf, staff)
+
+    def register_player_note(self, note):
+        self.player_notes[self.latest_note_id] = note
+        self.latest_note_id += 1
+
+    def register_enemy_note(self, note):
+        self.enemy_notes[self.latest_note_id] = note
+        self.latest_note_id += 1
+
+
+class Note:
+    @abc.abstractmethod
+    def update(self):
+        pass
+
+    @abc.abstractmethod
+    def should_destroy(self):
+        pass
+
+
+    @abc.abstractmethod
+    def note_real_value(self):
+        pass
+
+    @abc.abstractmethod
+    def draw(self, surf, staff):
+        pass
+
+
+
+class PlayerShot(Note):
+    PLAYER_SHOT_SPEED = 2
+
+    @property
+    def note_real_value(self):
+        return self.midi_num
+
+    def __init__(self, midi_num, midi_vel, x_init, x_thresh):
+        self.x_thresh = x_thresh
+        self.midi_num = midi_num
+        self.midi_vel = midi_vel
+        self.x_position = x_init
+        self.should_be_destroyed = False
+        self.side_effect = None
+
+    def update(self):
+        self.x_position = self.x_position + self.PLAYER_SHOT_SPEED
+        if self.x_position > self.x_thresh:
+            self.should_be_destroyed = True
+            self.side_effect = NoteCollisionSideEffect.PLAYER_MISSED_ALL
+
+
+    @property
+    def should_destroy(self):
+        return self.side_effect
+
+    def draw(self, surf, staff):
+        note_height_id = self.midi_num #TODO: NONSENSE
+        note_height = staff.display_heights[note_height_id]
+        draw_ellipse_angle(surf, (0,255,0,255), staff.get_note_rect(self.x_position, note_height), 20) # TODO: DRY/Refactor
+
+
+
+
+
+class BasicEnemyNote(Note):
+    def __init__(self, x_init, midi_num, x_thresh):
+        self.x_thresh = x_thresh
+        self.ENEMY_NOTE_SPEED = -3
+        self.midi_num = midi_num
+        self.x_position = x_init
+        self.should_be_destroyed = False
+        self.side_effect = None
+        self.collision_thresh = 400
+
+    @property
+    def note_real_value(self):
+        return self.midi_num
+
+    @property
+    def should_destroy(self):
+        return self.should_be_destroyed or self.x_position < self.x_thresh
+
+    def draw(self, surf, staff):
+        note_height_id = self.midi_num # TODO: Nonsense
+        note_height = staff.display_heights[note_height_id]
+        draw_ellipse_angle(surf, (255,0,0,255), staff.get_note_rect(self.x_position, note_height), 20) # TODO: DRY/Refactor
+
+    def update(self):
+        self.x_position += self.ENEMY_NOTE_SPEED
+        if self.x_position < self.x_thresh:
+            self.side_effect = NoteCollisionSideEffect.ENEMY_NOTE_GOT_THROUGH
+
+
+    def try_interact(self, player_note: PlayerShot):
+        if not self.should_be_destroyed:
+            if self.note_real_value == player_note.note_real_value and self.collides_with_player_note(player_note):
+                self.should_be_destroyed = True
+                player_note.should_be_destroyed = True
+                return NoteCollisionSideEffect.SUCCESSFUL_COLLISION
+
+    def collides_with_player_note(self, player_note):
+        return self.midi_num == player_note.midi_num and \
+               abs(self.x_position - player_note.x_position) < self.collision_thresh
+
+
 
 def new_surface():
     surface = pg.Surface(screen.get_size(), pg.SRCALPHA)
@@ -227,6 +392,9 @@ if __name__ == '__main__':
     staff = Staff()
     staff.draw(staff_surface)
 
+    gamestate = GameState()
+    note_surface = new_surface()
+
     while True:
 
         for event in pg.event.get():
@@ -234,23 +402,28 @@ if __name__ == '__main__':
             if event.type == QUIT:
                 pg.quit()
                 sys.exit()
-            # elif event.type == KEYDOWN:
-            #     if event.key == K_UP:
-            #         snake.point(UP)
-            #     elif event.key == K_DOWN:
-            #         snake.point(DOWN)
-            #     elif event.key == K_LEFT:
-            #         snake.point(LEFT)
-            #     elif event.key == K_RIGHT:
-            #         snake.point(RIGHT)
+            elif event.type == KEYDOWN:
+                if event.key == K_UP:
+                    gamestate.register_player_note(
+                        PlayerShot("G4_TREBLE", 999, 150, 450)
+                    )
+                elif event.key == K_DOWN:
+                    gamestate.register_player_note(
+                        BasicEnemyNote(450, "G4_TREBLE", 150)
+                    )
 
+        gamestate.update()
         # font = pg.font.Font(None, 36)
         # text = font.render(str(snake.length), 1, (10, 10, 10))
         # textpos = text.get_rect()
         # textpos.centerx = 20
         # surface.blit(text, textpos)
 
+        note_surface.fill((255,255,255,0))
+        gamestate.draw(note_surface, staff)
+
         screen.blit(staff_surface, (0, 0))
+        screen.blit(note_surface, (0, 0))
 
         pg.display.flip()
         pg.display.update()
