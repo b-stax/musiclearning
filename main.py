@@ -11,7 +11,7 @@ FPS = 30
 pg.init()
 fpsClock = pg.time.Clock()
 
-SCREEN_WIDTH, SCREEN_HEIGHT = 960, 480
+SCREEN_WIDTH, SCREEN_HEIGHT = 960, 520
 screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 clock = pg.time.Clock()
 
@@ -44,7 +44,7 @@ def draw_line_vertical(surf, color, pos, height, line_weight=LINE_WEIGHT_STANDAR
 class Staff(object):
     STAFF_POS = [15, 15]
     STAFF_WIDTH = 860
-    STAFF_HEIGHT = 450
+    STAFF_HEIGHT = 490
     COLOR = (0, 0, 0)
 
     HEADROOM_TOP = 80
@@ -195,6 +195,13 @@ class Staff(object):
             "B3_BASS": self.bass_line_heights[3],
             "A3_BASS": self.bass_space_heights[3],
             "G2_BASS": self.bass_line_heights[4],
+
+            "F2_BASS": self.bass_line_heights[4] + 1 * width,
+            "E2_BASS": self.bass_line_heights[4] + 2 * width,
+            "D2_BASS": self.bass_line_heights[4] + 3 * width,
+            "C2_BASS": self.bass_line_heights[4] + 4 * width,
+            "B2_BASS": self.bass_line_heights[4] + 5 * width,
+
         }
         return heights
 
