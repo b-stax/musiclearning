@@ -55,7 +55,9 @@ class Staff(object):
     HEADROOM_RIGHT = 20
     STAFF_LINE_WEIGHT = LINE_WEIGHT_STANDARD
 
-    NOTE_SPACE_WIDTH = 15
+    NOTE_SPACE_WIDTH = 18
+    NOTE_RADIUS = math.ceil(NOTE_SPACE_WIDTH + STAFF_LINE_WEIGHT / 2)
+    NOTE_OBLONGNESS = 3 # lol
 
     INDIVIDUAL_CLEF_HEIGHT = 5 * STAFF_LINE_WEIGHT + 4 * NOTE_SPACE_WIDTH
     INDIVIDUAL_CLEF_WIDTH = STAFF_WIDTH - (HEADROOM_LEFT + HEADROOM_RIGHT)
@@ -83,6 +85,8 @@ class Staff(object):
         self.bass_line_heights = self.get_clef_line_heights(self.BASS_CLEF_POS)
         self.bass_space_heights = self.get_clef_space_heights(self.bass_line_heights)
 
+        self.display_heights = self.get_display_heights()
+
     def get_clef_space_heights(self, line_heights):
         res = []
         for i in range(0, len(line_heights) - 1):
@@ -104,10 +108,10 @@ class Staff(object):
             res.append(line_height)
         return res
 
-
     def draw_clef_lines(self, clef_pos, line_heights, surf):
         draw_line_vertical(surf, self.COLOR, clef_pos, self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_BOLD)
-        draw_line_vertical(surf, self.COLOR, [clef_pos[0] + self.INDIVIDUAL_CLEF_WIDTH, clef_pos[1]], self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_BOLD)
+        draw_line_vertical(surf, self.COLOR, [clef_pos[0] + self.INDIVIDUAL_CLEF_WIDTH, clef_pos[1]],
+                           self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_BOLD)
 
         for line_height in line_heights:
             line_pos = [clef_pos[0], line_height]
@@ -131,6 +135,60 @@ class Staff(object):
                               self.TREBLE_IMAGE_HEADROOM_LEFT, self.treble_line_heights[3], surf)
         self.draw_clef_symbol("bass_clef.png", self.BASS_IMAGE_SCALE, self.BASS_IMAGE_ANCHOR_OFFSET,
                               self.BASS_IMAGE_HEADROOM_LEFT, self.bass_line_heights[1], surf)
+
+        #debug
+        offset = 0
+        for (note, height) in self.display_heights.items():
+            print(f"{note}: {height}")
+            pg.draw.rect(surf, (0, 0, 0, 255), self.get_note_rect(self.TREBLE_CLEF_POS[0] + 100 + offset, height))
+            pg.draw.circle(surf, (255, 255, 255, 255), [self.TREBLE_CLEF_POS[0] + 100 + offset, height], 4)
+            offset += 20
+
+    def get_note_rect(self, x_pos, note_height_id):
+        return pg.Rect(x_pos, note_height_id + math.ceil((self.NOTE_RADIUS + self.STAFF_LINE_WEIGHT) / 2), 2 * (self.NOTE_RADIUS + self.NOTE_OBLONGNESS), 2 * self.NOTE_RADIUS)
+
+    def get_display_heights(self):
+        width = (self.NOTE_SPACE_WIDTH + self.STAFF_LINE_WEIGHT) / 2
+        heights = {
+            "D6_TREBLE": self.treble_line_heights[0] - 5 * width,
+            "C6_TREBLE": self.treble_line_heights[0] - 4 * width,
+            "B6_TREBLE": self.treble_line_heights[0] - 3 * width,
+            "A6_TREBLE": self.treble_line_heights[0] - 2 * width,
+            "G5_TREBLE": self.treble_line_heights[0] - 1 * width,
+
+            "F5_TREBLE": self.treble_line_heights[0],
+            "E5_TREBLE": self.treble_space_heights[0],
+            "B5_TREBLE": self.treble_line_heights[1],
+            "C5_TREBLE": self.treble_space_heights[1],
+            "D5_TREBLE": self.treble_line_heights[2],
+            "A5_TREBLE": self.treble_space_heights[2],
+            "G4_TREBLE": self.treble_line_heights[3],
+            "F4_TREBLE": self.treble_space_heights[3],
+            "E4_TREBLE": self.treble_line_heights[4],
+
+            "D4_TREBLE": self.treble_line_heights[4] + 1 * width,
+            "C4_TREBLE": self.treble_line_heights[4] + 2 * width,
+            "B4_TREBLE": self.treble_line_heights[4] + 3 * width,
+            "A4_TREBLE": self.treble_line_heights[4] + 4 * width,
+            "G3_TREBLE": self.treble_line_heights[4] + 5 * width,
+
+            "F4_BASS": self.bass_line_heights[0] - 5 * width,
+            "E4_BASS": self.bass_line_heights[0] - 4 * width,
+            "D4_BASS": self.bass_line_heights[0] - 3 * width,
+            "C4_BASS": self.bass_line_heights[0] - 2 * width,
+            "B4_BASS": self.bass_line_heights[0] - 1 * width,
+
+            "A4_BASS": self.bass_line_heights[0],
+            "G3_BASS": self.bass_space_heights[0],
+            "F3_BASS": self.bass_line_heights[1],
+            "E3_BASS": self.bass_space_heights[1],
+            "D3_BASS": self.bass_line_heights[2],
+            "C3_BASS": self.bass_space_heights[2],
+            "B3_BASS": self.bass_line_heights[3],
+            "A3_BASS": self.bass_space_heights[3],
+            "G2_BASS": self.bass_line_heights[4],
+        }
+        return heights
 
 
 def new_surface():
