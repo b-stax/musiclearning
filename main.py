@@ -56,8 +56,9 @@ class Staff(object):
     STAFF_LINE_WEIGHT = LINE_WEIGHT_STANDARD
 
     NOTE_SPACE_WIDTH = 18
-    NOTE_RADIUS = math.ceil(NOTE_SPACE_WIDTH + STAFF_LINE_WEIGHT / 2)
-    NOTE_OBLONGNESS = 3 # lol
+    NOTE_Y_RADIUS = math.floor((NOTE_SPACE_WIDTH + STAFF_LINE_WEIGHT) / 2)
+    NOTE_OBLONGNESS = 3  # lol
+    NOTE_X_RADIUS = NOTE_Y_RADIUS + NOTE_OBLONGNESS
 
     INDIVIDUAL_CLEF_HEIGHT = 5 * STAFF_LINE_WEIGHT + 4 * NOTE_SPACE_WIDTH
     INDIVIDUAL_CLEF_WIDTH = STAFF_WIDTH - (HEADROOM_LEFT + HEADROOM_RIGHT)
@@ -136,16 +137,23 @@ class Staff(object):
         self.draw_clef_symbol("bass_clef.png", self.BASS_IMAGE_SCALE, self.BASS_IMAGE_ANCHOR_OFFSET,
                               self.BASS_IMAGE_HEADROOM_LEFT, self.bass_line_heights[1], surf)
 
-        #debug
+        # debug
         offset = 0
+        did = False
         for (note, height) in self.display_heights.items():
+            if (note.endswith("BASS") and not did):
+                did = True
+                offset -= 250
             print(f"{note}: {height}")
-            pg.draw.rect(surf, (0, 0, 0, 255), self.get_note_rect(self.TREBLE_CLEF_POS[0] + 100 + offset, height))
-            pg.draw.circle(surf, (255, 255, 255, 255), [self.TREBLE_CLEF_POS[0] + 100 + offset, height], 4)
-            offset += 20
+            draw_ellipse_angle(surf, (0, 0, 0, 255), self.get_note_rect(self.TREBLE_CLEF_POS[0] + 100 + offset, height), 20)
+            offset += 25
 
-    def get_note_rect(self, x_pos, note_height_id):
-        return pg.Rect(x_pos, note_height_id + math.ceil((self.NOTE_RADIUS + self.STAFF_LINE_WEIGHT) / 2), 2 * (self.NOTE_RADIUS + self.NOTE_OBLONGNESS), 2 * self.NOTE_RADIUS)
+    def get_note_rect(self, x_pos, note_height_id, scale = 1):
+        left = x_pos - self.NOTE_X_RADIUS * scale
+        top = note_height_id - self.NOTE_Y_RADIUS * scale
+        width = self.NOTE_X_RADIUS * 2 * scale
+        height = self.NOTE_Y_RADIUS * 2 * scale
+        return pg.Rect(left, top, width, height)
 
     def get_display_heights(self):
         width = (self.NOTE_SPACE_WIDTH + self.STAFF_LINE_WEIGHT) / 2
@@ -195,6 +203,13 @@ def new_surface():
     surface = pg.Surface(screen.get_size(), pg.SRCALPHA)
     surface = surface.convert_alpha()
     return surface
+
+
+def draw_ellipse_angle(surf, color, rect, angle):
+    shape_surf = pg.Surface(rect.size, pg.SRCALPHA)
+    pg.draw.ellipse(shape_surf, color, (0, 0, rect.width, rect.height))
+    rotated_surf = pg.transform.rotate(shape_surf, angle)
+    surf.blit(rotated_surf, rotated_surf.get_rect(center=rect.center))
 
 
 if __name__ == '__main__':
