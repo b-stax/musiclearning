@@ -220,6 +220,9 @@ class GameState():
     SCORE_POSITION = [SCREEN_WIDTH / 2, SCREEN_HEIGHT / 16]
     SPAWN_SPEED = 25 # #frames between spawns
 
+    PAIN_PER_FUCKUP = 18
+    PAIN_FADE_SPEED = 3
+
     def __init__(self, staff, lesson):
         self.lesson = lesson
         self.staff = staff
@@ -228,6 +231,7 @@ class GameState():
         self.latest_note_id = 0
         self.score = 0
         self.frame_num = 0
+        self.pain = 0
 
         self.SCORE_POSITION = [staff.STAFF_POS[0] + staff.STAFF_WIDTH / 2, staff.STAFF_HEIGHT / 12]
 
@@ -271,6 +275,9 @@ class GameState():
 
         self.spawn_enemy_notes()
 
+        if self.pain > 0:
+            self.pain -= self.PAIN_FADE_SPEED
+
 
     def generate_enemy_note(self):
         ind = random.randint(0, len(self.lesson.available_notes))
@@ -290,6 +297,7 @@ class GameState():
             self.score -= 1
         elif side_effect == NoteCollisionSideEffect.PLAYER_MISSED_ALL:
             self.score -= 1
+            self.pain += self.PAIN_PER_FUCKUP
         return
 
     def draw_note_collection(self, surf, staff):
@@ -307,7 +315,11 @@ class GameState():
         text_surface = my_ft_font.render(f"Score: {self.score}", self.antialias_score, self.score_color)
         surf.blit(text_surface, self.SCORE_POSITION)
 
+    def draw_pain(self, surf):
+        surf.fill((255,0,0,self.pain))
+
     def draw(self, surf):
+        self.draw_pain(surf)
         self.draw_note_collection(surf, self.staff)
         self.draw_score(surf)
 
