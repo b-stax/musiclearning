@@ -16,9 +16,6 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 720, 640
 screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 clock = pg.time.Clock()
 
-GRIDSIZE = 10
-GRID_WIDTH = SCREEN_WIDTH / GRIDSIZE
-GRID_HEIGHT = SCREEN_HEIGHT / GRIDSIZE
 LINE_WEIGHT_BOLD = 8
 LINE_WEIGHT_STANDARD = 2
 LINE_WEIGHT_LIGHT = 1
@@ -141,16 +138,6 @@ class Staff(object):
         self.draw_clef_symbol("bass_clef.png", self.BASS_IMAGE_SCALE, self.BASS_IMAGE_ANCHOR_OFFSET,
                               self.BASS_IMAGE_HEADROOM_LEFT, self.bass_line_heights[1], surf)
 
-        # # debug
-        # offset = 0
-        # did = False
-        # for (note, height) in self.display_heights.items():
-        #     if (note.endswith("BASS") and not did):
-        #         did = True
-        #         offset -= 250
-        #     print(f"{note}: {height}")
-        #     draw_ellipse_angle(surf, (0, 0, 0, 255), self.get_note_rect(self.TREBLE_CLEF_POS[0] + 100 + offset, height), 20)
-        #     offset += 25
 
     def get_note_rect(self, x_pos, note_height_id, scale = 1):
         left = x_pos - self.NOTE_X_RADIUS * scale
