@@ -233,24 +233,28 @@ class GameState():
 
         player_notes_to_destroy = []
         enemy_notes_to_destroy = []
+        side_effects = []
 
         for (id, note) in self.player_notes.items():
             side_effect =  note.should_destroy
             if side_effect:
                 player_notes_to_destroy.append(id)
-                self.do_side_effect(side_effect)
+                side_effects.append(side_effect)
 
         for (id, note) in self.enemy_notes.items():
-            side_effect =  note.should_destroy
+            side_effect = note.should_destroy
             if side_effect:
                 enemy_notes_to_destroy.append(id)
-                self.do_side_effect(side_effect)
+                side_effects.append(side_effect)
 
         for id in player_notes_to_destroy:
             del self.player_notes[id]
 
         for id in enemy_notes_to_destroy:
             del self.enemy_notes[id]
+
+        for side_effect in side_effects:
+            self.do_side_effect(side_effect)
 
     def do_side_effect(self, side_effect: NoteCollisionSideEffect):
         print(side_effect)
@@ -335,9 +339,8 @@ class BasicEnemyNote(Note):
         self.ENEMY_NOTE_SPEED = -3
         self.midi_num = midi_num
         self.x_position = x_init
-        self.should_be_destroyed = False
         self.side_effect = None
-        self.collision_thresh = 400
+        self.collision_thresh = 4
 
     @property
     def note_real_value(self):
@@ -345,7 +348,7 @@ class BasicEnemyNote(Note):
 
     @property
     def should_destroy(self):
-        return self.should_be_destroyed or self.x_position < self.x_thresh
+        return self.side_effect
 
     def draw(self, surf, staff):
         note_height_id = self.midi_num # TODO: Nonsense
@@ -358,12 +361,11 @@ class BasicEnemyNote(Note):
             self.side_effect = NoteCollisionSideEffect.ENEMY_NOTE_GOT_THROUGH
 
 
-    def try_interact(self, player_note: PlayerShot):
-        if not self.should_be_destroyed:
-            if self.note_real_value == player_note.note_real_value and self.collides_with_player_note(player_note):
-                self.should_be_destroyed = True
-                player_note.should_be_destroyed = True
-                return NoteCollisionSideEffect.SUCCESSFUL_COLLISION
+    def try_interact(self, player_note):
+        if not self.side_effect:
+            if self.collides_with_player_note(player_note):
+                self.side_effect = NoteCollisionSideEffect.SUCCESSFUL_COLLISION
+                player_note.side_effect = NoteCollisionSideEffect.SUCCESSFUL_COLLISION
 
     def collides_with_player_note(self, player_note):
         return self.midi_num == player_note.midi_num and \
@@ -408,8 +410,12 @@ if __name__ == '__main__':
                         PlayerShot("G4_TREBLE", 999, 150, 450)
                     )
                 elif event.key == K_DOWN:
-                    gamestate.register_player_note(
-                        BasicEnemyNote(450, "G4_TREBLE", 150)
+                    gamestate.register_enemy_note(
+                        BasicEnemyNote(650, "G4_TREBLE", 150)
+                    )
+                elif event.key == K_LEFT:
+                    gamestate.register_enemy_note(
+                        BasicEnemyNote(650, "A5_TREBLE", 150)
                     )
 
         gamestate.update()
