@@ -12,7 +12,7 @@ FPS = 30
 pg.init()
 fpsClock = pg.time.Clock()
 
-SCREEN_WIDTH, SCREEN_HEIGHT = 960, 520
+SCREEN_WIDTH, SCREEN_HEIGHT = 720, 640
 screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 clock = pg.time.Clock()
 
@@ -42,11 +42,11 @@ def draw_line_vertical(surf, color, pos, height, line_weight=LINE_WEIGHT_STANDAR
 
 class Staff(object):
     STAFF_POS = [15, 15]
-    STAFF_WIDTH = 860
-    STAFF_HEIGHT = 490
+    STAFF_WIDTH = 680
+    STAFF_HEIGHT = 600
     COLOR = (0, 0, 0)
 
-    HEADROOM_TOP = 80
+    HEADROOM_TOP = 150
     HEADROOM_BOTTOM = 100
     INTER_STAFF_HEAD_ROOM = 150
 
@@ -328,7 +328,7 @@ class Note:
 
 
 class PlayerShot(Note):
-    PLAYER_SHOT_SPEED = 6
+    PLAYER_SHOT_SPEED = 5
 
     @property
     def note_real_value(self):
@@ -364,7 +364,7 @@ class PlayerShot(Note):
 class BasicEnemyNote(Note):
     def __init__(self, x_init, midi_num, x_thresh, collision_thresh):
         self.x_thresh = x_thresh
-        self.ENEMY_NOTE_SPEED = -2
+        self.ENEMY_NOTE_SPEED = -3
         self.midi_num = midi_num
         self.x_position = x_init
         self.side_effect = None
@@ -436,6 +436,10 @@ if __name__ == '__main__':
                 if event.key == K_UP:
                     gamestate.register_player_note(
                         PlayerShot("G4_TREBLE", 999, staff.CLEF_PLAY_AREA_POS[0], staff.STAFF_TOP_RIGHT_CORNER[0])
+                    )
+                if event.key == K_RIGHT:
+                    gamestate.register_player_note(
+                        PlayerShot("A5_TREBLE", 999, staff.CLEF_PLAY_AREA_POS[0], staff.STAFF_TOP_RIGHT_CORNER[0])
                     )
                 elif event.key == K_DOWN:
                     gamestate.register_enemy_note(
