@@ -450,13 +450,14 @@ if __name__ == '__main__':
     staff = Staff()
     staff.draw(staff_surface)
 
+    # TODO this is shit
     key_signature = None
     # lesson_no = 1
+    lesson_contents = ["G4_TREBLE", "A5_TREBLE"]
+    notes = [BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], midi_num, staff.CLEF_PLAY_AREA_POS[0], staff.NOTE_X_RADIUS)
+             for midi_num in lesson_contents]
 
-    lesson = RandomLesson([
-        BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], "G4_TREBLE", staff.CLEF_PLAY_AREA_POS[0], staff.NOTE_X_RADIUS),
-        BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], "A5_TREBLE", staff.CLEF_PLAY_AREA_POS[0], staff.NOTE_X_RADIUS),
-    ], key_signature)
+    lesson = RandomLesson(notes, key_signature)
 
     gamestate = GameState(staff, lesson)
     note_surface = new_surface()
