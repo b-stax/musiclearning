@@ -1,6 +1,7 @@
 import abc
 import copy
 import math
+import random
 
 import pygame as pg
 import sys
@@ -204,21 +205,35 @@ class NoteCollisionSideEffect(Enum):
     SUCCESSFUL_COLLISION_PLAYER = 3
     SUCCESSFUL_COLLISION_ENEMY = 4
 
+class RandomLesson:
+    def __init__(self, available_notes, key_signature):
+        self.available_notes = available_notes
+        self.key_signature = key_signature
+        self.size = len(available_notes)
+
+    def new_note(self):
+        return copy.deepcopy(self.available_notes[random.randint(0, self.size - 1)])
+
 class GameState():
 
     SCORE_FONT_SIZE = 24
     SCORE_POSITION = [SCREEN_WIDTH / 2, SCREEN_HEIGHT / 16]
+    SPAWN_SPEED = 25 # #frames between spawns
 
-    def __init__(self, staff):
+    def __init__(self, staff, lesson):
+        self.lesson = lesson
         self.staff = staff
         self.player_notes = dict()
         self.enemy_notes = dict()
         self.latest_note_id = 0
         self.score = 0
+        self.frame_num = 0
 
         self.SCORE_POSITION = [staff.STAFF_POS[0] + staff.STAFF_WIDTH / 2, staff.STAFF_HEIGHT / 12]
 
     def update(self):
+        self.frame_num += 1
+
         for (id, note) in self.player_notes.items():
             note.update()
         for (id, note) in self.enemy_notes.items():
@@ -253,6 +268,17 @@ class GameState():
 
         for side_effect in side_effects:
             self.do_side_effect(side_effect)
+
+        self.spawn_enemy_notes()
+
+
+    def generate_enemy_note(self):
+        ind = random.randint(0, len(self.lesson.available_notes))
+
+
+    def spawn_enemy_notes(self):
+        if self.frame_num % self.SPAWN_SPEED == 0:
+            self.register_enemy_note(self.lesson.new_note())
 
     def do_side_effect(self, side_effect: NoteCollisionSideEffect):
         print(side_effect)
@@ -315,7 +341,7 @@ class Note:
 
 
 class PlayerShot(Note):
-    PLAYER_SHOT_SPEED = 5
+    PLAYER_SHOT_SPEED = 25
 
     @property
     def note_real_value(self):
@@ -326,13 +352,11 @@ class PlayerShot(Note):
         self.midi_num = midi_num
         self.midi_vel = midi_vel
         self.x_position = x_init
-        self.should_be_destroyed = False
         self.side_effect = None
 
     def update(self):
         self.x_position = self.x_position + self.PLAYER_SHOT_SPEED
         if self.x_position > self.x_thresh:
-            self.should_be_destroyed = True
             self.side_effect = NoteCollisionSideEffect.PLAYER_MISSED_ALL
 
     @property
@@ -384,7 +408,8 @@ class BasicEnemyNote(Note):
 
     def collides_with_player_note(self, player_note):
         return self.midi_num == player_note.midi_num and \
-               abs(self.x_position - player_note.x_position) < self.collision_thresh
+               player_note.side_effect is None and \
+               self.x_position < player_note.x_position
 
 
 
@@ -409,8 +434,16 @@ if __name__ == '__main__':
     staff = Staff()
     staff.draw(staff_surface)
 
-    gamestate = GameState(staff)
+    key_signature = None
+    lesson = RandomLesson([
+        BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], "G4_TREBLE", staff.CLEF_PLAY_AREA_POS[0], staff.NOTE_X_RADIUS),
+        BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], "A5_TREBLE", staff.CLEF_PLAY_AREA_POS[0], staff.NOTE_X_RADIUS),
+    ], key_signature)
+
+    gamestate = GameState(staff, lesson)
     note_surface = new_surface()
+
+    paused = False
 
     while True:
 
@@ -420,24 +453,28 @@ if __name__ == '__main__':
                 pg.quit()
                 sys.exit()
             elif event.type == KEYDOWN:
-                if event.key == K_UP:
-                    gamestate.register_player_note(
-                        PlayerShot("G4_TREBLE", 999, staff.CLEF_PLAY_AREA_POS[0], staff.STAFF_TOP_RIGHT_CORNER[0])
-                    )
-                if event.key == K_RIGHT:
-                    gamestate.register_player_note(
-                        PlayerShot("A5_TREBLE", 999, staff.CLEF_PLAY_AREA_POS[0], staff.STAFF_TOP_RIGHT_CORNER[0])
-                    )
-                elif event.key == K_DOWN:
-                    gamestate.register_enemy_note(
-                        BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], "G4_TREBLE", staff.CLEF_PLAY_AREA_POS[0], staff.NOTE_X_RADIUS)
-                    )
-                elif event.key == K_LEFT:
-                    gamestate.register_enemy_note(
-                        BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], "A5_TREBLE", staff.CLEF_PLAY_AREA_POS[0], staff.NOTE_X_RADIUS)
-                    )
+                if event.key == K_ESCAPE:
+                    paused = not paused
+                if not paused:
+                    if event.key == K_UP:
+                        gamestate.register_player_note(
+                            PlayerShot("G4_TREBLE", 999, staff.CLEF_PLAY_AREA_POS[0], staff.STAFF_TOP_RIGHT_CORNER[0])
+                        )
+                    if event.key == K_RIGHT:
+                        gamestate.register_player_note(
+                            PlayerShot("A5_TREBLE", 999, staff.CLEF_PLAY_AREA_POS[0], staff.STAFF_TOP_RIGHT_CORNER[0])
+                        )
+                    elif event.key == K_DOWN:
+                        gamestate.register_enemy_note(
+                            BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], "G4_TREBLE", staff.CLEF_PLAY_AREA_POS[0], staff.NOTE_X_RADIUS)
+                        )
+                    elif event.key == K_LEFT:
+                        gamestate.register_enemy_note(
+                            BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], "A5_TREBLE", staff.CLEF_PLAY_AREA_POS[0], staff.NOTE_X_RADIUS)
+                        )
 
-        gamestate.update()
+        if not paused:
+            gamestate.update()
         # font = pg.font.Font(None, 36)
         # text = font.render(str(snake.length), 1, (10, 10, 10))
         # textpos = text.get_rect()
