@@ -304,7 +304,7 @@ class GameState():
             self.add_pain(5 * self.PAIN_PER_FUCKUP)
         elif side_effect == NoteCollisionSideEffect.PLAYER_MISSED_ALL:
             self.score -= 1
-            self.add_pain(self.PAIN_PER_FUCKUP)
+            self.add_pain(2 * self.PAIN_PER_FUCKUP)
         return
 
     def draw_note_collection(self, surf, staff):
@@ -439,8 +439,6 @@ def draw_ellipse_angle(surf, color, rect, angle):
     rotated_surf = pg.transform.rotate(shape_surf, angle)
     surf.blit(rotated_surf, rotated_surf.get_rect(center=rect.center))
 
-
-# def load_lesson(lesson_no)
 
 if __name__ == '__main__':
 
