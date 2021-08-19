@@ -16,8 +16,6 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 960, 520
 screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 clock = pg.time.Clock()
 
-pg.key.set_repeat(1, 40)
-
 GRIDSIZE = 10
 GRID_WIDTH = SCREEN_WIDTH / GRIDSIZE
 GRID_HEIGHT = SCREEN_HEIGHT / GRIDSIZE
@@ -76,6 +74,9 @@ class Staff(object):
     BASS_IMAGE_HEADROOM_LEFT = 35
     BASS_IMAGE_ANCHOR_OFFSET = 0.27
 
+    CLEF_PLAY_AREA_OFFSET = 150 # TODO function of key signature
+    CLEF_PLAY_AREA_POS = [STAFF_POS[0] + CLEF_PLAY_AREA_OFFSET, STAFF_POS[1]]
+
     def __init__(self):
         self.STAFF_TOP_RIGHT_CORNER = copy.deepcopy(self.STAFF_POS)
         self.STAFF_TOP_RIGHT_CORNER[0] = self.STAFF_TOP_RIGHT_CORNER[0] + self.STAFF_WIDTH
@@ -114,6 +115,8 @@ class Staff(object):
         draw_line_vertical(surf, self.COLOR, clef_pos, self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_BOLD)
         draw_line_vertical(surf, self.COLOR, [clef_pos[0] + self.INDIVIDUAL_CLEF_WIDTH, clef_pos[1]],
                            self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_BOLD)
+        draw_line_vertical(surf, self.COLOR, [clef_pos[0] + self.CLEF_PLAY_AREA_OFFSET, clef_pos[1]],
+                           self.INDIVIDUAL_CLEF_HEIGHT, LINE_WEIGHT_STANDARD)
 
         for line_height in line_heights:
             line_pos = [clef_pos[0], line_height]
@@ -211,14 +214,22 @@ class NoteCollisionSideEffect(Enum):
     NONE = 0
     PLAYER_MISSED_ALL = 1
     ENEMY_NOTE_GOT_THROUGH = 2
-    SUCCESSFUL_COLLISION = 3
+    SUCCESSFUL_COLLISION_PLAYER = 3
+    SUCCESSFUL_COLLISION_ENEMY = 4
 
 class GameState():
 
-    def __init__(self):
+    SCORE_FONT_SIZE = 24
+    SCORE_POSITION = [SCREEN_WIDTH / 2, SCREEN_HEIGHT / 16]
+
+    def __init__(self, staff):
+        self.staff = staff
         self.player_notes = dict()
         self.enemy_notes = dict()
         self.latest_note_id = 0
+        self.score = 0
+
+        self.SCORE_POSITION = [staff.STAFF_POS[0] + staff.STAFF_WIDTH / 2, staff.STAFF_HEIGHT / 12]
 
     def update(self):
         for (id, note) in self.player_notes.items():
@@ -258,6 +269,15 @@ class GameState():
 
     def do_side_effect(self, side_effect: NoteCollisionSideEffect):
         print(side_effect)
+        if side_effect == NoteCollisionSideEffect.NONE:
+            return
+        elif side_effect == NoteCollisionSideEffect.SUCCESSFUL_COLLISION_ENEMY:
+            self.score += 1
+        elif side_effect == NoteCollisionSideEffect.ENEMY_NOTE_GOT_THROUGH:
+            self.score -= 1
+        elif side_effect == NoteCollisionSideEffect.PLAYER_MISSED_ALL:
+            self.score -= 1
+        return
 
     def draw_note_collection(self, surf, staff):
         for (id, note) in self.enemy_notes.items():
@@ -266,8 +286,17 @@ class GameState():
         for (id, note) in self.player_notes.items():
             note.draw(surf, staff)
 
-    def draw(self, surf, staff):
-        self.draw_note_collection(surf, staff)
+    antialias_score = True
+    score_color = (255, 0, 0)
+
+    def draw_score(self, surf):
+        my_ft_font = pg.font.SysFont('Times New Roman', self.SCORE_FONT_SIZE)
+        text_surface = my_ft_font.render(f"Score: {self.score}", self.antialias_score, self.score_color)
+        surf.blit(text_surface, self.SCORE_POSITION)
+
+    def draw(self, surf):
+        self.draw_note_collection(surf, self.staff)
+        self.draw_score(surf)
 
     def register_player_note(self, note):
         self.player_notes[self.latest_note_id] = note
@@ -299,14 +328,14 @@ class Note:
 
 
 class PlayerShot(Note):
-    PLAYER_SHOT_SPEED = 2
+    PLAYER_SHOT_SPEED = 6
 
     @property
     def note_real_value(self):
         return self.midi_num
 
     def __init__(self, midi_num, midi_vel, x_init, x_thresh):
-        self.x_thresh = x_thresh
+        self.x_thresh = x_thresh # todo
         self.midi_num = midi_num
         self.midi_vel = midi_vel
         self.x_position = x_init
@@ -319,7 +348,6 @@ class PlayerShot(Note):
             self.should_be_destroyed = True
             self.side_effect = NoteCollisionSideEffect.PLAYER_MISSED_ALL
 
-
     @property
     def should_destroy(self):
         return self.side_effect
@@ -327,20 +355,20 @@ class PlayerShot(Note):
     def draw(self, surf, staff):
         note_height_id = self.midi_num #TODO: NONSENSE
         note_height = staff.display_heights[note_height_id]
-        draw_ellipse_angle(surf, (0,255,0,255), staff.get_note_rect(self.x_position, note_height), 20) # TODO: DRY/Refactor
+        draw_ellipse_angle(surf, (0,125,0,255), staff.get_note_rect(self.x_position, note_height), 20) # TODO: DRY/Refactor
 
 
 
 
 
 class BasicEnemyNote(Note):
-    def __init__(self, x_init, midi_num, x_thresh):
+    def __init__(self, x_init, midi_num, x_thresh, collision_thresh):
         self.x_thresh = x_thresh
-        self.ENEMY_NOTE_SPEED = -3
+        self.ENEMY_NOTE_SPEED = -2
         self.midi_num = midi_num
         self.x_position = x_init
         self.side_effect = None
-        self.collision_thresh = 4
+        self.collision_thresh = collision_thresh
 
     @property
     def note_real_value(self):
@@ -364,8 +392,8 @@ class BasicEnemyNote(Note):
     def try_interact(self, player_note):
         if not self.side_effect:
             if self.collides_with_player_note(player_note):
-                self.side_effect = NoteCollisionSideEffect.SUCCESSFUL_COLLISION
-                player_note.side_effect = NoteCollisionSideEffect.SUCCESSFUL_COLLISION
+                self.side_effect = NoteCollisionSideEffect.SUCCESSFUL_COLLISION_ENEMY
+                player_note.side_effect = NoteCollisionSideEffect.SUCCESSFUL_COLLISION_PLAYER
 
     def collides_with_player_note(self, player_note):
         return self.midi_num == player_note.midi_num and \
@@ -394,7 +422,7 @@ if __name__ == '__main__':
     staff = Staff()
     staff.draw(staff_surface)
 
-    gamestate = GameState()
+    gamestate = GameState(staff)
     note_surface = new_surface()
 
     while True:
@@ -407,15 +435,15 @@ if __name__ == '__main__':
             elif event.type == KEYDOWN:
                 if event.key == K_UP:
                     gamestate.register_player_note(
-                        PlayerShot("G4_TREBLE", 999, 150, 450)
+                        PlayerShot("G4_TREBLE", 999, staff.CLEF_PLAY_AREA_POS[0], staff.STAFF_TOP_RIGHT_CORNER[0])
                     )
                 elif event.key == K_DOWN:
                     gamestate.register_enemy_note(
-                        BasicEnemyNote(650, "G4_TREBLE", 150)
+                        BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], "G4_TREBLE", staff.CLEF_PLAY_AREA_POS[0], staff.NOTE_X_RADIUS)
                     )
                 elif event.key == K_LEFT:
                     gamestate.register_enemy_note(
-                        BasicEnemyNote(650, "A5_TREBLE", 150)
+                        BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], "A5_TREBLE", staff.CLEF_PLAY_AREA_POS[0], staff.NOTE_X_RADIUS)
                     )
 
         gamestate.update()
@@ -426,7 +454,7 @@ if __name__ == '__main__':
         # surface.blit(text, textpos)
 
         note_surface.fill((255,255,255,0))
-        gamestate.draw(note_surface, staff)
+        gamestate.draw(note_surface)
 
         screen.blit(staff_surface, (0, 0))
         screen.blit(note_surface, (0, 0))
