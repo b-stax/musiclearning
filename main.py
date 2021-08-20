@@ -333,7 +333,7 @@ class GameState():
             self.score += 1
         elif side_effect == NoteCollisionSideEffect.ENEMY_NOTE_GOT_THROUGH:
             self.score -= 5
-            self.add_pain(5 * self.PAIN_PER_FUCKUP)
+            self.add_pain(3 * self.PAIN_PER_FUCKUP)
         elif side_effect == NoteCollisionSideEffect.PLAYER_MISSED_ALL:
             self.score -= 1
             self.add_pain(2 * self.PAIN_PER_FUCKUP)
@@ -395,9 +395,19 @@ class Note:
     def note_real_value(self):
         pass
 
-    @abc.abstractmethod
+    def draw_extra_line(self, surf, height):
+        draw_line_horizontal(surf, self.note_color, [self.x_position - staff.NOTE_X_RADIUS * 1.5,
+                                                     height - 1.5 * LINE_WEIGHT_STANDARD / 2],
+                             staff.NOTE_X_RADIUS * 3.25, 1.5 * LINE_WEIGHT_STANDARD)
+
     def draw(self, surf, staff):
-        pass
+        note_height = staff.display_heights[self.note_height_id]
+        draw_ellipse_angle(surf, self.note_color, staff.get_note_rect(self.x_position, note_height),
+                           20)  # TODO: DRY/Refactor
+        extra_lines = staff.extra_line_heights.get(self.note_height_id)
+        if extra_lines:
+            for line in extra_lines:
+                self.draw_extra_line(surf, line)
 
 
 class PlayerShot(Note):
@@ -427,19 +437,9 @@ class PlayerShot(Note):
 
     note_color = (0, 125, 0, 255)
 
-    def draw_extra_line(self, surf, height):
-        draw_line_horizontal(surf, self.note_color, [self.x_position - staff.NOTE_X_RADIUS * 1.5,
-                                                     height - 1.5 * LINE_WEIGHT_STANDARD / 2],
-                             staff.NOTE_X_RADIUS * 3.25, 1.5 * LINE_WEIGHT_STANDARD)
 
-    def draw(self, surf, staff):
-        note_height = staff.display_heights[self.note_height_id]
-        draw_ellipse_angle(surf, self.note_color, staff.get_note_rect(self.x_position, note_height),
-                           20)  # TODO: DRY/Refactor
-        extra_lines = staff.extra_line_heights.get(self.note_height_id)
-        if extra_lines:
-            for line in extra_lines:
-                self.draw_extra_line(surf, line)
+
+
 
 
 
@@ -460,11 +460,7 @@ class BasicEnemyNote(Note):
     def should_destroy(self):
         return self.side_effect
 
-    def draw(self, surf, staff):
-        note_height_id = self.note_height_id  # TODO: Nonsense
-        note_height = staff.display_heights[note_height_id]
-        draw_ellipse_angle(surf, (255, 0, 0, 255), staff.get_note_rect(self.x_position, note_height),
-                           20)  # TODO: DRY/Refactor
+    note_color = (255, 0, 0, 255)
 
     def update(self):
         self.x_position += self.ENEMY_NOTE_SPEED
@@ -536,7 +532,7 @@ if __name__ == '__main__':
 
     # TODO this is shit
     key_signature = None
-    lesson_no = 1
+    lesson_no = 5
     lesson_contents = read_lesson_contents(lesson_no)
     notes = [BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], note_height_id, staff.CLEF_PLAY_AREA_POS[0],
                             staff.NOTE_X_RADIUS)
