@@ -87,8 +87,8 @@ class Staff(object):
         self.treble_space_heights = self.get_clef_space_heights(self.treble_line_heights)
         self.bass_line_heights = self.get_clef_line_heights(self.BASS_CLEF_POS)
         self.bass_space_heights = self.get_clef_space_heights(self.bass_line_heights)
-
         self.display_heights = self.get_display_heights()
+        self.extra_line_heights = self.get_extra_line_heights()
 
     def get_clef_space_heights(self, line_heights):
         res = []
@@ -194,9 +194,38 @@ class Staff(object):
             "D2_BASS": self.bass_line_heights[4] + 3 * width,
             "C2_BASS": self.bass_line_heights[4] + 4 * width,
             "B1_BASS": self.bass_line_heights[4] + 5 * width,
-
         }
         return heights
+
+    def get_extra_line_heights(self):
+
+        prototype = {
+            "D6_TREBLE": ["A5_TREBLE", "C6_TREBLE"],
+            "C6_TREBLE": ["A5_TREBLE", "C6_TREBLE"],
+            "B5_TREBLE": ["A5_TREBLE"],
+            "A5_TREBLE": ["A5_TREBLE"],
+
+            "C4_TREBLE": ["C4_TREBLE"],
+            "B3_TREBLE":["C4_TREBLE"],
+            "A3_TREBLE": ["C4_TREBLE", "A3_TREBLE"],
+            "G3_TREBLE": ["C4_TREBLE", "A3_TREBLE"]
+
+            "F4_BASS": ["C4_BASS", "E4_BASS"],
+            "E4_BASS": ["C4_BASS", "E4_BASS"],
+            "D4_BASS": ["C4_BASS"],
+            "C4_BASS": ["C4_BASS"],
+
+            "E2_BASS": ["E2_BASS"],
+            "D2_BASS": ["E2_BASS"],
+            "C2_BASS": ["E2_BASS", "C2_BASS"],
+            "B1_BASS": ["E2_BASS", "C2_BASS"]
+        }
+        res = {}
+        for (key, line_height_ids) in prototype.items():
+            insert = [self.display_heights[nhid] for nhid in line_height_ids]
+            res[key] = insert
+        return res
+
 
 
 from enum import Enum
@@ -335,12 +364,14 @@ class GameState():
 
     # If we have overlapping notes from the bass and treble clef, send to the right clef
     def get_shot_clef(self, ansi_note):
-        return "TREBLE" # TODO
+        return "TREBLE"  # TODO
 
     def send_ansi_note(self, ansi_note):
         clef = self.get_shot_clef(ansi_note)
-        shot = PlayerShot(f"{ansi_note}_{clef}", 999, staff.CLEF_PLAY_AREA_POS[0], staff.STAFF_TOP_RIGHT_CORNER[0])
-        self.register_player_note(shot)
+        note_height_id = f"{ansi_note}_{clef}" #TODO, be more sophisticated
+        if note_height_id in staff.display_heights:
+            shot = PlayerShot(note_height_id, 999, staff.CLEF_PLAY_AREA_POS[0], staff.STAFF_TOP_RIGHT_CORNER[0])
+            self.register_player_note(shot)
 
     def register_player_note(self, note):
         self.player_notes[self.latest_note_id] = note
@@ -376,7 +407,9 @@ class PlayerShot(Note):
     def note_real_value(self):
         return self.note_height_id
 
-    def __init__(self, note_height_id, midi_vel, x_init, x_thresh):
+    def __init__(self, note_height_id, midi_vel, x_init, x_thresh, line_through=False, lines_around=0):
+        self.lines_around = lines_around
+        self.line_through = line_through
         self.x_thresh = x_thresh
         self.note_height_id = note_height_id
         self.midi_vel = midi_vel
@@ -392,11 +425,22 @@ class PlayerShot(Note):
     def should_destroy(self):
         return self.side_effect
 
+    note_color = (0, 125, 0, 255)
+
+    def draw_extra_line(self, surf, height):
+        draw_line_horizontal(surf, self.note_color, [self.x_position - staff.NOTE_X_RADIUS * 1.5,
+                                                     height - 1.5 * LINE_WEIGHT_STANDARD / 2],
+                             staff.NOTE_X_RADIUS * 3.25, 1.5 * LINE_WEIGHT_STANDARD)
+
     def draw(self, surf, staff):
-        note_height_id = self.note_height_id  # TODO: NONSENSE
-        note_height = staff.display_heights[note_height_id]
-        draw_ellipse_angle(surf, (0, 125, 0, 255), staff.get_note_rect(self.x_position, note_height),
+        note_height = staff.display_heights[self.note_height_id]
+        draw_ellipse_angle(surf, self.note_color, staff.get_note_rect(self.x_position, note_height),
                            20)  # TODO: DRY/Refactor
+        extra_lines = staff.extra_line_heights.get(self.note_height_id)
+        if extra_lines:
+            for line in extra_lines:
+                self.draw_extra_line(surf, line)
+
 
 
 class BasicEnemyNote(Note):
@@ -472,6 +516,7 @@ def handle_midi_in(event):
         ansi_note = pg.midi.midi_to_ansi_note(event.data1)
         gamestate.send_ansi_note(ansi_note)
 
+
 def read_lesson_contents(lesson_no):
     res = []
     fname = f"./lessons/lesson_{lesson_no}.txt"
@@ -479,6 +524,7 @@ def read_lesson_contents(lesson_no):
         for line in f:
             res.append(line.strip())
     return res
+
 
 if __name__ == '__main__':
 
@@ -492,7 +538,8 @@ if __name__ == '__main__':
     key_signature = None
     lesson_no = 1
     lesson_contents = read_lesson_contents(lesson_no)
-    notes = [BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], note_height_id, staff.CLEF_PLAY_AREA_POS[0], staff.NOTE_X_RADIUS)
+    notes = [BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], note_height_id, staff.CLEF_PLAY_AREA_POS[0],
+                            staff.NOTE_X_RADIUS)
              for note_height_id in lesson_contents]
 
     lesson = RandomLesson(notes, key_signature)
