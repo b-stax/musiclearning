@@ -4,6 +4,8 @@ import math
 import random
 
 import pygame as pg
+import pygame.midi
+
 import sys
 import os
 
@@ -151,47 +153,47 @@ class Staff(object):
         heights = {
             "D6_TREBLE": self.treble_line_heights[0] - 5 * width,
             "C6_TREBLE": self.treble_line_heights[0] - 4 * width,
-            "B6_TREBLE": self.treble_line_heights[0] - 3 * width,
-            "A6_TREBLE": self.treble_line_heights[0] - 2 * width,
+            "B5_TREBLE": self.treble_line_heights[0] - 3 * width,
+            "A5_TREBLE": self.treble_line_heights[0] - 2 * width,
             "G5_TREBLE": self.treble_line_heights[0] - 1 * width,
 
             "F5_TREBLE": self.treble_line_heights[0],
             "E5_TREBLE": self.treble_space_heights[0],
-            "B5_TREBLE": self.treble_line_heights[1],
+            "D5_TREBLE": self.treble_line_heights[1],
             "C5_TREBLE": self.treble_space_heights[1],
-            "D5_TREBLE": self.treble_line_heights[2],
-            "A5_TREBLE": self.treble_space_heights[2],
+            "B4_TREBLE": self.treble_line_heights[2],
+            "A4_TREBLE": self.treble_space_heights[2],
             "G4_TREBLE": self.treble_line_heights[3],
             "F4_TREBLE": self.treble_space_heights[3],
             "E4_TREBLE": self.treble_line_heights[4],
 
             "D4_TREBLE": self.treble_line_heights[4] + 1 * width,
             "C4_TREBLE": self.treble_line_heights[4] + 2 * width,
-            "B4_TREBLE": self.treble_line_heights[4] + 3 * width,
-            "A4_TREBLE": self.treble_line_heights[4] + 4 * width,
+            "B3_TREBLE": self.treble_line_heights[4] + 3 * width,
+            "A3_TREBLE": self.treble_line_heights[4] + 4 * width,
             "G3_TREBLE": self.treble_line_heights[4] + 5 * width,
 
             "F4_BASS": self.bass_line_heights[0] - 5 * width,
             "E4_BASS": self.bass_line_heights[0] - 4 * width,
             "D4_BASS": self.bass_line_heights[0] - 3 * width,
             "C4_BASS": self.bass_line_heights[0] - 2 * width,
-            "B4_BASS": self.bass_line_heights[0] - 1 * width,
+            "B3_BASS": self.bass_line_heights[0] - 1 * width,
 
-            "A4_BASS": self.bass_line_heights[0],
+            "A3_BASS": self.bass_line_heights[0],
             "G3_BASS": self.bass_space_heights[0],
             "F3_BASS": self.bass_line_heights[1],
             "E3_BASS": self.bass_space_heights[1],
             "D3_BASS": self.bass_line_heights[2],
             "C3_BASS": self.bass_space_heights[2],
-            "B3_BASS": self.bass_line_heights[3],
-            "A3_BASS": self.bass_space_heights[3],
+            "B2_BASS": self.bass_line_heights[3],
+            "A2_BASS": self.bass_space_heights[3],
             "G2_BASS": self.bass_line_heights[4],
 
             "F2_BASS": self.bass_line_heights[4] + 1 * width,
             "E2_BASS": self.bass_line_heights[4] + 2 * width,
             "D2_BASS": self.bass_line_heights[4] + 3 * width,
             "C2_BASS": self.bass_line_heights[4] + 4 * width,
-            "B2_BASS": self.bass_line_heights[4] + 5 * width,
+            "B1_BASS": self.bass_line_heights[4] + 5 * width,
 
         }
         return heights
@@ -225,6 +227,7 @@ class GameState():
 
     PAIN_PER_FUCKUP = 18
     PAIN_FADE_SPEED = 3
+    MAX_PAIN = 96
 
     def __init__(self, staff, lesson):
         self.lesson = lesson
@@ -290,8 +293,8 @@ class GameState():
 
     def add_pain(self, pain):
         self.pain += pain
-        if self.pain > 255:
-            self.pain = 255
+        if self.pain > self.MAX_PAIN:  # popular franchise from Remedy Games
+            self.pain = self.MAX_PAIN
 
     def do_side_effect(self, side_effect: NoteCollisionSideEffect):
         print(side_effect)
@@ -330,6 +333,15 @@ class GameState():
         self.draw_note_collection(surf, self.staff)
         self.draw_score(surf)
 
+    # If we have overlapping notes from the bass and treble clef, send to the right clef
+    def get_shot_clef(self, ansi_note):
+        return "TREBLE" # TODO
+
+    def send_ansi_note(self, ansi_note):
+        clef = self.get_shot_clef(ansi_note)
+        shot = PlayerShot(f"{ansi_note}_{clef}", 999, staff.CLEF_PLAY_AREA_POS[0], staff.STAFF_TOP_RIGHT_CORNER[0])
+        self.register_player_note(shot)
+
     def register_player_note(self, note):
         self.player_notes[self.latest_note_id] = note
         self.latest_note_id += 1
@@ -362,11 +374,11 @@ class PlayerShot(Note):
 
     @property
     def note_real_value(self):
-        return self.midi_num
+        return self.note_height_id
 
-    def __init__(self, midi_num, midi_vel, x_init, x_thresh):
-        self.x_thresh = x_thresh  # todo
-        self.midi_num = midi_num
+    def __init__(self, note_height_id, midi_vel, x_init, x_thresh):
+        self.x_thresh = x_thresh
+        self.note_height_id = note_height_id
         self.midi_vel = midi_vel
         self.x_position = x_init
         self.side_effect = None
@@ -381,31 +393,31 @@ class PlayerShot(Note):
         return self.side_effect
 
     def draw(self, surf, staff):
-        note_height_id = self.midi_num  # TODO: NONSENSE
+        note_height_id = self.note_height_id  # TODO: NONSENSE
         note_height = staff.display_heights[note_height_id]
         draw_ellipse_angle(surf, (0, 125, 0, 255), staff.get_note_rect(self.x_position, note_height),
                            20)  # TODO: DRY/Refactor
 
 
 class BasicEnemyNote(Note):
-    def __init__(self, x_init, midi_num, x_thresh, collision_thresh):
+    def __init__(self, x_init, note_height_id, x_thresh, collision_thresh):
         self.x_thresh = x_thresh
         self.ENEMY_NOTE_SPEED = -3
-        self.midi_num = midi_num
+        self.note_height_id = note_height_id
         self.x_position = x_init
         self.side_effect = None
         self.collision_thresh = collision_thresh
 
     @property
     def note_real_value(self):
-        return self.midi_num
+        return self.note_height_id
 
     @property
     def should_destroy(self):
         return self.side_effect
 
     def draw(self, surf, staff):
-        note_height_id = self.midi_num  # TODO: Nonsense
+        note_height_id = self.note_height_id  # TODO: Nonsense
         note_height = staff.display_heights[note_height_id]
         draw_ellipse_angle(surf, (255, 0, 0, 255), staff.get_note_rect(self.x_position, note_height),
                            20)  # TODO: DRY/Refactor
@@ -422,7 +434,7 @@ class BasicEnemyNote(Note):
                 player_note.side_effect = NoteCollisionSideEffect.SUCCESSFUL_COLLISION_PLAYER
 
     def collides_with_player_note(self, player_note):
-        return self.midi_num == player_note.midi_num and \
+        return self.note_height_id == player_note.note_height_id and \
                player_note.side_effect is None and \
                self.x_position < player_note.x_position
 
@@ -440,6 +452,34 @@ def draw_ellipse_angle(surf, color, rect, angle):
     surf.blit(rotated_surf, rotated_surf.get_rect(center=rect.center))
 
 
+def init_midi():
+    pg.fastevent.init()
+    event_get = pg.fastevent.get
+    event_post = pg.fastevent.post
+    pg.midi.init()
+
+    input_id = pg.midi.get_default_input_id()
+
+    i = pg.midi.Input(input_id)
+    return (event_get, event_post, i)
+
+
+MIDI_KEY_DOWN = 144
+
+
+def handle_midi_in(event):
+    if event.status == MIDI_KEY_DOWN:
+        ansi_note = pg.midi.midi_to_ansi_note(event.data1)
+        gamestate.send_ansi_note(ansi_note)
+
+def read_lesson_contents(lesson_no):
+    res = []
+    fname = f"./lessons/lesson_{lesson_no}.txt"
+    with open(fname) as f:
+        for line in f:
+            res.append(line.strip())
+    return res
+
 if __name__ == '__main__':
 
     # Pre-render staff surface
@@ -450,10 +490,10 @@ if __name__ == '__main__':
 
     # TODO this is shit
     key_signature = None
-    # lesson_no = 1
-    lesson_contents = ["G4_TREBLE", "A5_TREBLE"]
-    notes = [BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], midi_num, staff.CLEF_PLAY_AREA_POS[0], staff.NOTE_X_RADIUS)
-             for midi_num in lesson_contents]
+    lesson_no = 1
+    lesson_contents = read_lesson_contents(lesson_no)
+    notes = [BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], note_height_id, staff.CLEF_PLAY_AREA_POS[0], staff.NOTE_X_RADIUS)
+             for note_height_id in lesson_contents]
 
     lesson = RandomLesson(notes, key_signature)
 
@@ -462,35 +502,29 @@ if __name__ == '__main__':
 
     paused = False
 
-    while True:
+    event_get, event_post, midi_in = init_midi()
+
+    going = True
+    while going:
 
         for event in pg.event.get():
             print(event)
             if event.type == QUIT:
-                pg.quit()
-                sys.exit()
+                going = False
             elif event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     paused = not paused
+            elif event.type == pg.midi.MIDIIN:
                 if not paused:
-                    if event.key == K_UP:
-                        gamestate.register_player_note(
-                            PlayerShot("G4_TREBLE", 999, staff.CLEF_PLAY_AREA_POS[0], staff.STAFF_TOP_RIGHT_CORNER[0])
-                        )
-                    if event.key == K_RIGHT:
-                        gamestate.register_player_note(
-                            PlayerShot("A5_TREBLE", 999, staff.CLEF_PLAY_AREA_POS[0], staff.STAFF_TOP_RIGHT_CORNER[0])
-                        )
-                    elif event.key == K_DOWN:
-                        gamestate.register_enemy_note(
-                            BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], "G4_TREBLE", staff.CLEF_PLAY_AREA_POS[0],
-                                           staff.NOTE_X_RADIUS)
-                        )
-                    elif event.key == K_LEFT:
-                        gamestate.register_enemy_note(
-                            BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], "A5_TREBLE", staff.CLEF_PLAY_AREA_POS[0],
-                                           staff.NOTE_X_RADIUS)
-                        )
+                    handle_midi_in(event)
+
+        if midi_in.poll():
+            midi_events = midi_in.read(10)
+            # convert them into pygame events.
+            midi_evs = pg.midi.midis2events(midi_events, midi_in.device_id)
+
+            for m_e in midi_evs:
+                event_post(m_e)
 
         if not paused:
             gamestate.update()
@@ -509,3 +543,10 @@ if __name__ == '__main__':
         pg.display.flip()
         pg.display.update()
         fpsClock.tick(FPS)
+# end main game loop
+
+del midi_in
+pg.midi.quit()
+
+pg.quit()
+sys.exit()
