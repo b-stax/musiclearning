@@ -208,7 +208,7 @@ class Staff(object):
             "C4_TREBLE": ["C4_TREBLE"],
             "B3_TREBLE":["C4_TREBLE"],
             "A3_TREBLE": ["C4_TREBLE", "A3_TREBLE"],
-            "G3_TREBLE": ["C4_TREBLE", "A3_TREBLE"]
+            "G3_TREBLE": ["C4_TREBLE", "A3_TREBLE"],
 
             "F4_BASS": ["C4_BASS", "E4_BASS"],
             "E4_BASS": ["C4_BASS", "E4_BASS"],
