@@ -3,6 +3,8 @@ import copy
 import math
 import random
 
+from collections import OrderedDict
+
 import pygame as pg
 import pygame.midi
 
@@ -237,6 +239,7 @@ class NoteCollisionSideEffect(Enum):
     ENEMY_NOTE_GOT_THROUGH = 2
     SUCCESSFUL_COLLISION_PLAYER = 3
     SUCCESSFUL_COLLISION_ENEMY = 4
+    COLLISION_NOT_FIRST_NOTE = 5
 
 
 class RandomLesson:
@@ -262,21 +265,27 @@ class GameState():
         self.lesson = lesson
         self.staff = staff
         self.player_notes = dict()
-        self.enemy_notes = dict()
+        self.enemy_notes = OrderedDict()
         self.latest_note_id = 0
         self.score = 0
         self.frame_num = 0
         self.pain = 0
-
+        self.needs_first = True
+        self.had_collision = False
         self.SCORE_POSITION = [staff.STAFF_POS[0] + staff.STAFF_WIDTH / 2, staff.STAFF_HEIGHT / 12]
+
 
     def update(self):
         self.frame_num += 1
 
+        need_to_set_first = True
         for (id, note) in self.player_notes.items():
             note.update()
         for (id, note) in self.enemy_notes.items():
             note.update()
+            if need_to_set_first:
+                note.set_is_first(True)
+                need_to_set_first = False
 
         # TODO efficientize
         for (player_note_id, player_note) in self.player_notes.items():
@@ -313,8 +322,6 @@ class GameState():
         if self.pain > 0:
             self.pain -= self.PAIN_FADE_SPEED
 
-    def generate_enemy_note(self):
-        ind = random.randint(0, len(self.lesson.available_notes))
 
     def spawn_enemy_notes(self):
         if self.frame_num % self.SPAWN_SPEED == 0:
@@ -336,6 +343,9 @@ class GameState():
             self.add_pain(3 * self.PAIN_PER_FUCKUP)
         elif side_effect == NoteCollisionSideEffect.PLAYER_MISSED_ALL:
             self.score -= 1
+            self.add_pain(2 * self.PAIN_PER_FUCKUP)
+        elif side_effect == NoteCollisionSideEffect.COLLISION_NOT_FIRST_NOTE:
+            self.score -= 2
             self.add_pain(2 * self.PAIN_PER_FUCKUP)
         return
 
@@ -444,13 +454,15 @@ class PlayerShot(Note):
 
 
 class BasicEnemyNote(Note):
-    def __init__(self, x_init, note_height_id, x_thresh, collision_thresh):
+    def __init__(self, x_init, note_height_id, x_thresh, collision_thresh, is_first):
         self.x_thresh = x_thresh
         self.ENEMY_NOTE_SPEED = -3
         self.note_height_id = note_height_id
         self.x_position = x_init
         self.side_effect = None
         self.collision_thresh = collision_thresh
+        self.is_first = False
+        self.note_color = (255, 0, 0, 255) if(is_first) else (128, 0, 255, 255)
 
     @property
     def note_real_value(self):
@@ -460,7 +472,9 @@ class BasicEnemyNote(Note):
     def should_destroy(self):
         return self.side_effect
 
-    note_color = (255, 0, 0, 255)
+    def set_is_first(self, is_first):
+        self.is_first = is_first
+        self.note_color = (255, 0, 0, 255)
 
     def update(self):
         self.x_position += self.ENEMY_NOTE_SPEED
@@ -470,8 +484,12 @@ class BasicEnemyNote(Note):
     def try_interact(self, player_note):
         if not self.side_effect:
             if self.collides_with_player_note(player_note):
-                self.side_effect = NoteCollisionSideEffect.SUCCESSFUL_COLLISION_ENEMY
-                player_note.side_effect = NoteCollisionSideEffect.SUCCESSFUL_COLLISION_PLAYER
+                if(self.is_first):
+                    self.side_effect = NoteCollisionSideEffect.SUCCESSFUL_COLLISION_ENEMY
+                    player_note.side_effect = NoteCollisionSideEffect.SUCCESSFUL_COLLISION_PLAYER
+                else:
+                    self.side_effect = NoteCollisionSideEffect.COLLISION_NOT_FIRST_NOTE
+                    player_note.side_effect = NoteCollisionSideEffect.NONE
 
     def collides_with_player_note(self, player_note):
         return self.note_height_id == player_note.note_height_id and \
@@ -532,10 +550,10 @@ if __name__ == '__main__':
 
     # TODO this is shit
     key_signature = None
-    lesson_no = 5
+    lesson_no = 4
     lesson_contents = read_lesson_contents(lesson_no)
     notes = [BasicEnemyNote(staff.STAFF_TOP_RIGHT_CORNER[0], note_height_id, staff.CLEF_PLAY_AREA_POS[0],
-                            staff.NOTE_X_RADIUS)
+                            staff.NOTE_X_RADIUS, is_first=False)
              for note_height_id in lesson_contents]
 
     lesson = RandomLesson(notes, key_signature)
