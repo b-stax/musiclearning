@@ -278,6 +278,8 @@ class GameState():
     def update(self):
         self.frame_num += 1
 
+        self.spawn_enemy_notes()
+
         need_to_set_first = True
         for (id, note) in self.player_notes.items():
             note.update()
@@ -316,8 +318,6 @@ class GameState():
 
         for side_effect in side_effects:
             self.do_side_effect(side_effect)
-
-        self.spawn_enemy_notes()
 
         if self.pain > 0:
             self.pain -= self.PAIN_FADE_SPEED
